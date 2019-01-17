@@ -1,0 +1,18 @@
+# Copyright 2019 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See https://github.com/joaquintides/usingstdcpp2019 for talk material.
+
+import os ;
+import testing ;
+
+local BOOST_ROOT = [ os.environ BOOST_ROOT ] ;
+
+project
+    : requirements
+      <include>$(BOOST_ROOT)
+    ;
+
+run sample.cpp ; 

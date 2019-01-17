@@ -1,0 +1,56 @@
+# Copyright 2019 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See https://github.com/joaquintides/usingstdcpp2019 for talk material.
+
+sudo: false
+
+language: cpp
+
+os: linux
+    
+branches:
+  only:
+    - master
+
+env:
+  matrix:
+    - BOGUS_JOB=true
+    
+matrix:
+  exclude: # workaround for https://github.com/travis-ci/travis-ci/issues/4681
+    - env: BOGUS_JOB=true
+  include:
+    - os: linux
+      compiler: g++-8
+      env: TOOLSET=gcc COMPILER=g++-8 CXXSTD=17
+      addons:
+        apt:
+          packages:
+            - g++-8
+          sources:
+            - ubuntu-toolchain-r-test
+    - os: linux
+      compiler: clang++-7
+      env: TOOLSET=clang COMPILER=clang++-7 CXXSTD=17
+      addons:
+        apt:
+          packages:
+            - clang-7
+          sources:
+            - ubuntu-toolchain-r-test
+
+install:
+  - git clone -b $TRAVIS_BRANCH --depth 1 https://github.com/boostorg/boost.git boost-root
+  - cd boost-root
+  - git submodule update --init
+  - ./bootstrap.sh
+  - ./b2 headers
+  - cd ..
+
+script:
+  - |-
+    echo "using $TOOLSET : : $COMPILER ;" > ~/user-config.jam
+  - ./boost-root/b2 -sBOOST_ROOT=$TRAVIS_BUILD_DIR/boost-root toolset=$TOOLSET cxxstd=$CXXSTD
