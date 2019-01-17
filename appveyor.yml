@@ -29,4 +29,4 @@ build: off
 
 test_script:
   - if not "%CXXSTD%" == "" set CXXSTD=cxxstd=%CXXSTD%
-  - ./boost-root/b2 -sBOOST_ROOT=%APPVEYOR_BUILD_FOLDER%/boost-root toolset=%TOOLSET% %CXXSTD%
+  - .\boost-root\b2 -sBOOST_ROOT=%APPVEYOR_BUILD_FOLDER%\boost-root toolset=%TOOLSET% %CXXSTD%
