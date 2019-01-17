@@ -1,0 +1,32 @@
+# Copyright 2019 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See https://github.com/joaquintides/usingstdcpp2019 for talk material.
+
+version: 1.0.{build}-{branch}
+
+branches:
+  only:
+    - master
+
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      TOOLSET: msvc-14.1
+      CXXSTD: 117
+
+install:
+  - git clone -b %APPVEYOR_REPO_BRANCH% --depth 1 https://github.com/boostorg/boost.git boost-root
+  - cd boost-root
+  - git submodule update --init
+  - bootstrap
+  - b2 headers
+  - cd ..
+
+build: off
+
+test_script:
+  - if not "%CXXSTD%" == "" set CXXSTD=cxxstd=%CXXSTD%
+  - ./boost-root/b2 -sBOOST_ROOT=%APPVEYOR_BUILD_FOLDER%/boost-root toolset=%TOOLSET% %CXXSTD%
