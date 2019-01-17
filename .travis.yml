@@ -41,7 +41,8 @@ matrix:
             - clang-7
           sources:
             - ubuntu-toolchain-r-test
-
+            - llvm-toolchain-trusty-7
+ 
 install:
   - git clone -b $TRAVIS_BRANCH --depth 1 https://github.com/boostorg/boost.git boost-root
   - cd boost-root
