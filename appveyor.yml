@@ -15,7 +15,7 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       TOOLSET: msvc-14.1
-      CXXSTD: 17
+      CXXSTD: latest
 
 install:
   - git clone -b master --depth 1 https://github.com/boostorg/boost.git boost-root
