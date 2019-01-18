@@ -230,6 +230,7 @@ private:
       })...
     };
   }
+
 #endif
 
   void disconnect_srcs()
