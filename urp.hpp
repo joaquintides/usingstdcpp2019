@@ -199,7 +199,7 @@ private:
     node* this_;
   };
 
-  template<std::size_t> friend class slot;
+  template<std::size_t> friend struct slot;
 
   template<std::size_t... I>
   auto connect_srcs(std::index_sequence<I...>)
