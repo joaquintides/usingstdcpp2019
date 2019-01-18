@@ -161,7 +161,7 @@ public:
   }
 
 protected:
-  auto get_srcs()const noexcept{return srcs;}
+  auto& get_srcs()const noexcept{return srcs;}
 
 private:
   template<typename,typename,typename...> friend class node;
@@ -456,7 +456,7 @@ inline constexpr bool is_function_or_value=
 
 } /* namespace detail */
 
-#define URP_DEFINE_UNARY_OP(name)                             \
+#define USINGSTDCPP2019_URP_DEFINE_UNARY_OP(name)             \
 template<                                                     \
   typename T,                                                 \
   std::enable_if_t<detail::is_function_or_value<T>>* =nullptr \
@@ -469,7 +469,7 @@ auto operator name(T&& x)                                     \
   };                                                          \
 }
 
-#define URP_DEFINE_BINARY_OP(name)                            \
+#define USINGSTDCPP2019_URP_DEFINE_BINARY_OP(name)            \
 template<                                                     \
   typename T,typename U,                                      \
   std::enable_if_t<                                           \
@@ -515,15 +515,15 @@ auto operator name(T&& x,U&& y)                               \
   };                                                          \
 }
 
-URP_DEFINE_UNARY_OP(+)
-URP_DEFINE_UNARY_OP(-)
-URP_DEFINE_BINARY_OP(+)
-URP_DEFINE_BINARY_OP(-)
-URP_DEFINE_BINARY_OP(*)
-URP_DEFINE_BINARY_OP(/)
+USINGSTDCPP2019_URP_DEFINE_UNARY_OP(+)
+USINGSTDCPP2019_URP_DEFINE_UNARY_OP(-)
+USINGSTDCPP2019_URP_DEFINE_BINARY_OP(+)
+USINGSTDCPP2019_URP_DEFINE_BINARY_OP(-)
+USINGSTDCPP2019_URP_DEFINE_BINARY_OP(*)
+USINGSTDCPP2019_URP_DEFINE_BINARY_OP(/)
 
-#undef URP_DEFINE_BINARY_OP
-#undef URP_DEFINE_UNARY_OP
+#undef USINGSTDCPP2019_URP_DEFINE_BINARY_OP
+#undef USINGSTDCPP2019_URP_DEFINE_UNARY_OP
 
 template<typename F,typename... Srcs> class event;
 
