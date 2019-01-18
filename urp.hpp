@@ -174,30 +174,43 @@ private:
     return connect_srcs(std::make_index_sequence<sizeof...(Srcs)>{});
   }
 
+#if defined(_MSC_VER)
+
+  template<std::size_t I>
+  struct slot
+  {
+    template<typename Arg>
+    void operator()(Arg arg)const{
+      std::visit(overloaded{
+        [this](auto* p){
+          auto& src=std::get<I>(this_->srcs);
+          src=static_cast<std::decay_t<decltype(src)>>(p);
+        },
+        [this](auto& sigargs){
+          std::apply([this](auto&&... sigargs){
+            this_->derived().callback(
+              node_index_type<I>{},
+              std::forward<decltype(sigargs)>(sigargs)...);
+          },sigargs);
+        }
+      },arg);
+    }
+
+    node* this_;
+  };
+
+  template<std::size_t> friend class slot;
+
   template<std::size_t... I>
   auto connect_srcs(std::index_sequence<I...>)
   {
-#if defined(_MSC_VER)
-    return std::array{
-      std::get<I>(srcs)->connect_node(
-        [this,&src=std::get<I>(srcs),index=node_index_type<I>{}]
-        (auto arg){
-          std::visit(overloaded{
-            [this,&src](auto* p){
-              src=static_cast<std::decay_t<decltype(src)>>(p);
-            },
-            [this,index](auto& sigargs){
-              std::apply([this,index](auto&&... sigargs){
-                derived().callback(
-                  index,
-                  std::forward<decltype(sigargs)>(sigargs)...);
-              },sigargs);
-            }
-          },arg);
-        }
-      )...
-    };
+    return std::array{std::get<I>(srcs)->connect_node(slot<I>{this})...};
+  }
+
 #else
+
+  template<std::size_t... I>
+  auto connect_srcs(std::index_sequence<I...>)
     return std::array{
       std::get<I>(srcs)->connect_node([this](auto arg){
         std::visit(overloaded{
@@ -215,8 +228,8 @@ private:
         },arg);
       })...
     };
-#endif
   }
+#endif
 
   void disconnect_srcs()
   {
