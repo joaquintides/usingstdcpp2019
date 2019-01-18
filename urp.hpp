@@ -178,7 +178,7 @@ private:
   auto connect_srcs(std::index_sequence<I...>)
   {
 #if defined(_MSC_VER)
-    return std::array{{
+    return std::array<boost::signals2::connection,sizeof...(Srcs)>{{
       std::get<I>(srcs)->connect_node(
         [this,&src=std::get<I>(srcs),index=node_index_type<I>{}](auto arg){
           std::visit(overloaded{
