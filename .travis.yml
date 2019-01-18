@@ -39,7 +39,7 @@ matrix:
         apt:
           packages:
             - clang-7
-            - libc++-dev
+            - libstdc++-5-dev
           sources:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-7
