@@ -18,7 +18,7 @@ environment:
       CXXSTD: 17
 
 install:
-  - git clone -b %APPVEYOR_REPO_BRANCH% --depth 1 https://github.com/boostorg/boost.git boost-root
+  - git clone -b master --depth 1 https://github.com/boostorg/boost.git boost-root
   - cd boost-root
   - git submodule update --init
   - bootstrap
