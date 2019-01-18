@@ -211,6 +211,7 @@ private:
 
   template<std::size_t... I>
   auto connect_srcs(std::index_sequence<I...>)
+  {
     return std::array{
       std::get<I>(srcs)->connect_node([this](auto arg){
         std::visit(overloaded{
