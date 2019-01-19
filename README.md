@@ -1,5 +1,6 @@
 using std::cpp 2019
 -------------------
+[![Build Status](https://travis-ci.org/joaquintides/usingstdcpp2019.svg?branch=master)](https://travis-ci.org/joaquintides/usingstdcpp2019) [![Build Status](https://ci.appveyor.com/api/projects/status/github/joaquintides/usingstdcpp2019?branch=master&svg=true)](https://ci.appveyor.com/project/joaquintides/usingstdcpp2019)
 
 Presentation from Joaquín Mª López Muñoz at [using std::cpp 2019](http://usingstdcpp.org/using-stdcpp-2019/)
 and associated material.
