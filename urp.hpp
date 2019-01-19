@@ -326,7 +326,7 @@ auto subtuple(Tuple&& t,std::index_sequence<I...>)
 template<std::size_t I0,std::size_t Length,typename Tuple>
 auto subtuple(Tuple&& t)
 {
-  return subtuple<I0>(
+  return detail::subtuple<I0>(
     std::forward<Tuple>(t),std::make_index_sequence<Length>{});
 }
 
@@ -338,8 +338,8 @@ auto compose_function_f(F1 f1,F2 f2,F3 f3)
 {
   return[=](auto&&... x){
     auto t=std::forward_as_tuple(std::forward<decltype(x)>(x)...);
-    auto t2=subtuple<0,Arity2>(std::move(t));
-    auto t3=subtuple<Arity2,Arity3>(std::move(t));
+    auto t2=detail::subtuple<0,Arity2>(std::move(t));
+    auto t3=detail::subtuple<Arity2,Arity3>(std::move(t));
     return f1(std::apply(f2,t2),std::apply(f3,t3));
   };
 }
