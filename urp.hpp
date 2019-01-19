@@ -86,6 +86,8 @@ protected:
   {
     sig(std::forward_as_tuple(std::forward<SigArgs>(sigargs)...));
   }
+
+  auto get_srcs()const noexcept{return std::tuple{};}
     
 private:
   template<typename,typename,typename...> friend class node;
