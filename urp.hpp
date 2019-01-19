@@ -567,9 +567,9 @@ USINGSTDCPP2019_URP_DEFINE_BINARY_OP(/)
 template<typename F,typename... Srcs> class event;
 
 template<typename T>
-class trigger:public detail::node<trigger<T>,void(trigger<T>&,const T&)>
+class trigger:public detail::node<trigger<T>,void(const trigger<T>&,const T&)>
 {
-  using super=detail::node<trigger,void(trigger&,const T&)>;
+  using super=detail::node<trigger,void(const trigger&,const T&)>;
 
 public:
   using value_type=T;
@@ -624,12 +624,15 @@ auto compose_event_f(F1 f1,F2 f2)
 
 template<typename F,typename... Srcs>
 class event:public detail::node<
-  event<F,Srcs...>,void(event<F,Srcs...>&,
-  const detail::event_value_type<F,Srcs...>&),Srcs...
+  event<F,Srcs...>,
+  void(const event<F,Srcs...>&,const detail::event_value_type<F,Srcs...>&),
+  Srcs...
 >
 {
   using super=detail::node<
-    event,void(event&,const detail::event_value_type<F,Srcs...>&),Srcs...
+    event,
+    void(const event&,const detail::event_value_type<F,Srcs...>&),
+    Srcs...
   >;
 
 public:
