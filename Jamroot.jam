@@ -15,4 +15,5 @@ project
       <include>$(BOOST_ROOT)
     ;
 
-run sample.cpp ; 
+run function_basic.cpp ;
+run sample.cpp ;
