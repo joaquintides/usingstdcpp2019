@@ -16,4 +16,5 @@ project
     ;
 
 run function_basic.cpp ;
+run newton_raphson.cpp ;
 run sample.cpp ;
