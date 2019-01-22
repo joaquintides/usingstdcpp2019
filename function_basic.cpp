@@ -14,9 +14,9 @@ int main()
   using namespace usingstdcpp2019::urp;
     
   value x=0,y=0;
-  auto  z=(x*x)+(y*y)+1;
+  auto  z=(x*x)+y+1;
   
-  x=4;
+  x=6;
   y=5;
   std::cout<<"z="<<z.get()<<"\n";
 }
