@@ -613,10 +613,16 @@ using event_value_type=typename event_value_type_impl<F,Srcs...>::type;
 template<typename F1,typename F2>
 auto compose_event_f(F1 f1,F2 f2)
 {
-  return[=](auto index,const auto& x){
-    const auto& o=f2(index,x);
-    using return_type=std::decay_t<decltype(f1(index,*o))>;
-    return o?f1(index,*o):return_type{};       
+  return[=](auto index,const auto& x)mutable{
+    const auto& o2=f2(index,x);
+    using return_type=std::optional<
+      std::decay_t<decltype(*f1(node_index_type<0>{},*o2))>>;
+
+    if(o2){
+      const auto& o1=f1(node_index_type<0>{},*o2);
+      if(o1)return return_type{*o1}; 
+    }
+    return return_type{};       
   };
 }
 
