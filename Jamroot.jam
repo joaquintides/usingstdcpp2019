@@ -15,6 +15,7 @@ project
       <include>$(BOOST_ROOT)
     ;
 
+run event_basic.cpp ;
 run function_basic.cpp ;
 run function_decomposed.cpp ;
 run newton_raphson.cpp ;
