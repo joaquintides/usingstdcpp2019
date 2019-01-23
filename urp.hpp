@@ -721,13 +721,17 @@ auto combine(Srcs&... srcs)
   return event{
     [os=cache_type{},remaining=sizeof...(Srcs)]
     (auto index,const auto& x)mutable{
+      if(!remaining){
+        os=cache_type{};
+        remaining=sizeof...(Srcs);
+      }
       auto& o=std::get<index.value>(os);
       if(!o)--remaining;
       o=x;
       return remaining?
         std::nullopt:
         std::apply([](auto&&... os){
-          return std::optional{std::make_tuple(*os...)};
+          return std::make_optional(std::make_tuple(*os...));
         },os);
     },
     srcs...
