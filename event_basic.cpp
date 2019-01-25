@@ -16,10 +16,10 @@ int main()
 
   trigger<std::string> s;
   auto n=s|map([](const std::string& s){return s.size();});
-  auto e=combine(s,n)|
-         filter([](const auto& p){return std::get<1>(p)>=4;})|
-         map([](const auto& p){return std::get<0>(p);})|
-         accumulate(std::string{},std::plus<>{});
+  auto e=combine(s,n)
+        |filter([](const auto& p){return std::get<1>(p)>=4;})
+        |map([](const auto& p){return std::get<0>(p);})
+        |accumulate(std::string{},std::plus<>{});
     
   e.connect([](const auto&,const std::string& str){
     std::cout<<str<<" ";
