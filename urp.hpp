@@ -313,7 +313,7 @@ void swap(value<T>& x,value<T>& y){x.swap(y);}
 namespace detail{
 
 template<typename F1,typename F2>
-auto compose_function_f(F1 f1,F2 f2)
+auto compose_function(F1 f1,F2 f2)
 {
   return[=](auto&&... x){
     return f1(f2(std::forward<decltype(x)>(x)...));};
@@ -336,7 +336,7 @@ template<
   std::size_t Arity2,std::size_t Arity3,
   typename F1,typename F2,typename F3
 >
-auto compose_function_f(F1 f1,F2 f2,F3 f3)
+auto compose_function(F1 f1,F2 f2,F3 f3)
 {
   return[=](auto&&... x){
     auto t=std::forward_as_tuple(std::forward<decltype(x)>(x)...);
@@ -376,13 +376,13 @@ public:
   function(function&& x)=default;
   template<typename F1,typename F2>
   function(F1 f1,function<F2,Args...>&& x):
-    super{std::move(x)},f{detail::compose_function_f(f1,x.f)}{}
+    super{std::move(x)},f{detail::compose_function(f1,x.f)}{}
   template<
     typename F1,typename F2,typename... Args2,typename F3,typename... Args3
   >
   function(F1 f1,function<F2,Args2...>&& x,function<F3,Args3...>&& y):
     super{std::move(x.base()),std::move(y.base())},
-    f{detail::compose_function_f<sizeof...(Args2),sizeof...(Args3)>(
+    f{detail::compose_function<sizeof...(Args2),sizeof...(Args3)>(
       f1,x.f,y.f)
     }{}
   template<typename F1,typename F2,typename... Args2,typename Arg3>
@@ -448,7 +448,7 @@ private:
 
 template<typename F1,typename F2,typename... Args>
 function(F1,function<F2,Args...>&&)->function<
-  decltype(detail::compose_function_f(std::declval<F1>(),std::declval<F2>())),
+  decltype(detail::compose_function(std::declval<F1>(),std::declval<F2>())),
   Args...
 >;
 
@@ -457,7 +457,7 @@ template<
 >
 function(F1,function<F2,Args2...>&&,function<F3,Args3...>&&)->function<
   decltype(
-    detail::compose_function_f<sizeof...(Args2),sizeof...(Args3)>(
+    detail::compose_function<sizeof...(Args2),sizeof...(Args3)>(
       std::declval<F1>(),std::declval<F2>(),std::declval<F3>())),
   Args2...,Args3...
 >;
@@ -465,7 +465,7 @@ function(F1,function<F2,Args2...>&&,function<F3,Args3...>&&)->function<
 template<typename F1,typename F2,typename... Args2,typename Arg3>
 function(F1,function<F2,Args2...>&&,Arg3&)->function<
   decltype(
-    detail::compose_function_f<sizeof...(Args2),1>(
+    detail::compose_function<sizeof...(Args2),1>(
       std::declval<F1>(),std::declval<F2>(),detail::identity_f{})),
   Args2...,Arg3
 >;
@@ -473,7 +473,7 @@ function(F1,function<F2,Args2...>&&,Arg3&)->function<
 template<typename F1,typename Arg2,typename F3,typename... Args3>
 function(F1 f1,Arg2& x,function<F3,Args3...>&& y)->function<
   decltype(
-    detail::compose_function_f<1,sizeof...(Args3)>(
+    detail::compose_function<1,sizeof...(Args3)>(
       std::declval<F1>(),detail::identity_f{},std::declval<F3>())),
   Arg2,Args3...
 >;
@@ -594,63 +594,79 @@ void swap(trigger<T>& x,trigger<T>& y){return x.swap(y);}
 
 namespace detail{
 
-template<typename F,typename... Srcs>
-struct event_value_type_impl
+template<typename ValueFunction,typename F>
+class action
 {
-  template<std::size_t... I>
-  static auto helper(std::index_sequence<I...>)->
-    std::common_type_t<std::decay_t<
-      decltype(*std::declval<F>()(
-        node_index_type<I>{},
-        std::declval<const typename Srcs::value_type&>()))>...>;
-  
-  using type=decltype(helper(std::make_index_sequence<sizeof...(Srcs)>{}));
+public:
+  action(ValueFunction,F f):f{f}{}
+
+  template<typename... Args>
+  static auto value(const Args&... args)->
+  decltype(std::declval<ValueFunction>()(args...));
+
+  template<typename... Args>
+  void operator()(Args&&... args){f(std::forward<Args>(args)...);}
+
+private:
+  F f;
 };
 
-template<typename F,typename... Srcs>
-using event_value_type=typename event_value_type_impl<F,Srcs...>::type;
+inline constexpr auto type_passthrough=[](const auto& x,const auto&... xs){
+  return std::common_type_t<
+    std::decay_t<decltype(x)>,std::decay_t<decltype(xs)>...>(x);
+};
 
-template<typename F1,typename F2>
-auto compose_event_f(F1 f1,F2 f2)
+template<typename Action1,typename Action2>
+struct compose_action_value_function
 {
-  return[=](auto index,const auto& x)mutable{
-    const auto& o2=f2(index,x);
-    using return_type=std::optional<
-      std::decay_t<decltype(*f1(node_index_type<0>{},*o2))>>;
+  template<typename... Args>
+  auto operator()(const Args&... args)->
+  decltype(Action1::value(Action2::value(args...)));
+};
 
-    if(o2){
-      const auto& o1=f1(node_index_type<0>{},*o2);
-      if(o1)return return_type{*o1}; 
+template<typename Action1,typename Action2>
+auto compose_action(Action1 act1,Action2 act2)
+{
+  return action{
+    compose_action_value_function<Action1,Action2>{},
+    [=](auto& sig,auto index,const auto& x)mutable{
+      auto sig2=[&](const auto& y){act1(sig,node_index_type<0>{},y);};
+      act2(sig2,index,x);
     }
-    return return_type{};       
   };
 }
 
+template<typename Action,typename... Srcs>
+using event_value_type=decltype(
+  Action::value(std::declval<const typename Srcs::value_type&>()...));
+
 } /* namespace detail */
 
-template<typename F,typename... Srcs>
+template<typename Action,typename... Srcs>
 class event:public detail::node<
-  event<F,Srcs...>,
-  void(const event<F,Srcs...>&,const detail::event_value_type<F,Srcs...>&),
+  event<Action,Srcs...>,
+  void(
+    const event<Action,Srcs...>&,
+    const detail::event_value_type<Action,Srcs...>&
+  ),
   Srcs...
 >
 {
   using super=detail::node<
     event,
-    void(const event&,const detail::event_value_type<F,Srcs...>&),
+    void(const event&,const detail::event_value_type<Action,Srcs...>&),
     Srcs...
   >;
 
 public:
-  using value_type=detail::event_value_type<F,Srcs...>;
+  using value_type=detail::event_value_type<Action,Srcs...>;
     
-  event(F f,Srcs&... srcs):super{srcs...},f{f}{}
+  event(Action act,Srcs&... srcs):super{srcs...},act{act}{}
   event(const event& x)=default;
   event(event&& x)=default;
-  template<typename F1,typename F2>
-  event(F1 f1,event<F2,Srcs...>&& x):
-    super{std::move(x)},f{detail::compose_event_f(f1,x.f)}{}
-  
+  template<typename Action1,typename Action2>
+  event(Action1 act1,event<Action2,Srcs...>&& x):
+    super{std::move(x)},act{detail::compose_action(act1,x.act)}{}
 
   event& operator=(const event&)=default;
   event& operator=(event&&)=default;
@@ -659,13 +675,14 @@ public:
   {
     using std::swap;
     base().swap(x.base());
-    swap(f,x.f);
+    swap(act,x.act);
   }
 
-  template<typename G>
-  auto operator|(G g)& {return urp::event{g,*this};}
-  template<typename G>
-  auto operator|(G g)&&{return urp::event{std::move(g),std::move(*this)};}
+  template<typename Action2>
+  auto operator|(Action2 act2)& {return urp::event{act2,*this};}
+  template<typename Action2>
+  auto operator|(Action2 act2)&&
+    {return urp::event{std::move(act2),std::move(*this)};}
     
 private:
   friend super;
@@ -676,46 +693,65 @@ private:
   template<typename Index,typename Src,typename T>
   void callback(Index index,Src&,const T& x)
   {
-    const auto& o=f(index,x);
-    if(o)this->signal(*this,*o);
+    auto sig=[this](const value_type& y){this->signal(*this,y);};
+    act(sig,index,x);
   }
 
-  F f;
+  Action act;
 };
 
-template<typename F1,typename F2,typename... Srcs>
-event(F1,event<F2,Srcs...>&&)->event<
-  decltype(detail::compose_event_f(std::declval<F1>(),std::declval<F2>())),
+template<typename Action1,typename Action2,typename... Srcs>
+event(Action1,event<Action2,Srcs...>&&)->event<
+  decltype(
+    detail::compose_action(std::declval<Action1>(),std::declval<Action2>())),
   Srcs...
 >;
 
-template<typename F,typename... Srcs>
-void swap(event<F,Srcs...>& x,event<F,Srcs...>& y){x.swap(y);}
+template<typename Action,typename... Srcs>
+void swap(event<Action,Srcs...>& x,event<Action,Srcs...>& y){x.swap(y);}
 
 template<typename Pred>
 auto filter(Pred pred)
 {
-  return [=](auto,const auto& x){return pred(x)?&x:nullptr;};
+  return detail::action{
+    detail::type_passthrough,
+    [=](auto& sig,auto,const auto& x){if(pred(x))sig(x);}
+  };
 }
 
 template<typename F>
 auto map(F f)
 {
-  return [=](auto,const auto& x){return std::optional{f(x)};};
+  return detail::action{
+    [=](const auto& x,const auto&... xs){
+      return std::common_type_t<
+        std::decay_t<decltype(f(x))>,std::decay_t<decltype(f(xs))>...>(f(x));
+    },
+    [=](auto& sig,auto,const auto& x){sig(f(x));}
+  };
 }
 
 template<typename... Srcs>
 auto merge(Srcs&... srcs)
 {
-  return event{[](auto,const auto& x){return &x;},srcs...};
+  return event{
+    detail::action{
+      detail::type_passthrough,
+      [](auto& sig,auto,const auto& x){sig(x);}
+    },
+    srcs...
+  };
 }
 
 template<typename T,typename BynaryOp>
 auto accumulate(T init,BynaryOp op)
 {
-  return [=,res=std::move(init)](auto,const auto& x)mutable{
-    res=op(std::move(res),x);
-    return &res;
+  return detail::action{
+    [=](const auto&...){return std::move(init);},
+    [=,res=std::move(init)](auto& sig,auto,const auto& x)mutable{
+      res=op(std::move(res),x);
+      sig(res);
+    }
   };
 }
 
@@ -725,20 +761,21 @@ auto combine(Srcs&... srcs)
   using cache_type=std::tuple<std::optional<typename Srcs::value_type>...>;
 
   return event{
-    [os=cache_type{},remaining=sizeof...(Srcs)]
-    (auto index,const auto& x)mutable{
-      if(!remaining){
-        os=cache_type{};
-        remaining=sizeof...(Srcs);
+    detail::action{
+      [](const auto&... xs){return std::make_tuple(xs...);},
+      [os=cache_type{},remaining=sizeof...(Srcs)]
+      (auto& sig,auto index,const auto& x)mutable{
+        auto& o=std::get<index.value>(os);
+        if(!o)--remaining;
+        o=x;
+        if(!remaining){
+          sig(std::apply([](auto&&... os){
+            return std::make_tuple(std::move(*os)...);
+          },os));
+          os=cache_type{};
+          remaining=sizeof...(Srcs);
+        }
       }
-      auto& o=std::get<index.value>(os);
-      if(!o)--remaining;
-      o=x;
-      return remaining?
-        std::nullopt:
-        std::apply([](auto&&... os){
-          return std::make_optional(std::make_tuple(*os...));
-        },os);
     },
     srcs...
   };
