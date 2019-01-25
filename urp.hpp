@@ -681,8 +681,7 @@ public:
   template<typename Action2>
   auto operator|(Action2 act2)& {return urp::event{act2,*this};}
   template<typename Action2>
-  auto operator|(Action2 act2)&&
-    {return urp::event{std::move(act2),std::move(*this)};}
+  auto operator|(Action2 act2)&&{return urp::event{act2,std::move(*this)};}
     
 private:
   friend super;
