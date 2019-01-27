@@ -20,8 +20,10 @@
 #include <optional>
 #include <tuple>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <variant>
+#include <vector>
 
 namespace usingstdcpp2019::urp{
 
@@ -603,6 +605,24 @@ public:
   using value_type=Value;
 
   callback_class(F f):f{f}{}
+  callback_class(const callback_class&)=default;
+  callback_class(callback_class&&)=default;
+
+  callback_class& operator=(const callback_class& x)
+  {
+    if(this!=&x){
+      if constexpr(std::is_copy_assignable_v<F>){
+        f=x.f;
+      }
+      else{
+        static_assert(std::is_nothrow_move_constructible_v<F>);
+        auto f2=x.f;
+        f.~F();
+        ::new (&f) F{std::move(f2)};
+      }
+    }
+    return *this;
+  }
 
   template<typename... Args>
   void operator()(Args&&... args){f(std::forward<Args>(args)...);}
@@ -726,32 +746,53 @@ event(Action1,event<Action2,Srcs...>&& x)->event<
 template<typename Action,typename... Srcs>
 void swap(event<Action,Srcs...>& x,event<Action,Srcs...>& y){x.swap(y);}
 
-template<typename Pred>
-auto filter(Pred pred)
+template<typename Src>
+class retain:public detail::node<
+  retain<Src>,void(const retain<Src>&),Src
+>
 {
-  return detail::type_passthrough(
-    [=](auto& sig,auto,const auto& x){if(pred(x))sig(x);});
-}
+  using super=detail::node<retain,void(const retain&),Src>;
 
-template<typename F>
-auto map(F f)
-{
-  return [=](auto... args){
-    return detail::callback<std::common_type_t<decltype(f(args.get()))>...>(
-      [=](auto& sig,auto,const auto& x){sig(f(x));});
-  };
-}
+public:
+  using value_type=typename Src::value_type;
 
-template<typename T,typename BynaryOp>
-auto accumulate(T init,BynaryOp op)
-{
-  return [=](auto...){return detail::callback<T>(
-    [=,res=std::move(init)](auto& sig,auto,const auto& x)mutable{
-      res=op(std::move(res),x);
-      sig(res);
+  retain(Src&& src,const value_type& v=value_type{}):
+    super{src},v{v},src{std::move(src)}{}
+  retain(const retain& x):retain{Src{x.src},x.v}{}
+  retain(retain&&)=default;
+
+  retain& operator=(const retain& x)
+  {
+    if(this!=&x){
+      v=x.v;
+      src=x.src;
+      base()=super{src};
     }
-  );};
-}
+    return *this;
+  }
+
+  retain& operator=(retain&& x)=default;
+
+  const value_type& get()const noexcept{return v;}
+      
+  template<typename Slot>
+  auto operator|(Slot s)&{return event{s,*this};}
+
+private:
+  friend super;
+
+  super& base()noexcept{return *this;}
+
+  template<typename Index>
+  void callback(Index,const Src&,const value_type& x)
+  {
+    v=x;
+    this->signal(*this);
+  }
+
+  value_type v;
+  Src        src;
+};
 
 template<typename... Srcs>
 auto merge(Srcs&... srcs)
@@ -785,6 +826,69 @@ auto combine(Srcs&... srcs)
       }
     );},
     srcs...
+  };
+}
+template<typename Pred>
+auto filter(Pred pred)
+{
+  return detail::type_passthrough(
+    [=](auto& sig,auto,const auto& x){if(pred(x))sig(x);});
+}
+
+template<typename F>
+auto map(F f)
+{
+  return [=](auto... args){
+    return detail::callback<std::common_type_t<decltype(f(args.get()))>...>(
+      [=](auto& sig,auto,const auto& x){sig(f(x));});
+  };
+}
+
+template<typename T,typename BynaryOp>
+auto accumulate(T init,BynaryOp op)
+{
+  return [=](auto...){return detail::callback<T>(
+    [=,res=std::move(init)](auto& sig,auto,const auto& x)mutable{
+      res=op(std::move(res),x);
+      sig(res);
+    }
+  );};
+}
+
+template<typename F>
+auto group_by(F f)
+{
+  return [=](auto... args){
+    using arg_type=std::common_type_t<decltype(args.get())...>;
+    using key_type=
+      std::common_type_t<std::decay_t<decltype(f(args.get()))>...>;
+    using trigger_type=trigger<arg_type>;
+    using value_type=decltype(merge(std::declval<trigger_type&>()));
+      
+    return detail::callback<value_type>(
+      [=,trgs=std::unordered_map<key_type,trigger_type>{}]
+      (auto& sig,auto,const auto& x)mutable{
+        const auto& k=f(x);
+        auto        [it,b]=trgs.try_emplace(k);
+        if(b)sig(merge(it->second));
+        it->second=x;
+      }
+    );
+  };
+}
+    
+auto collect()
+{
+  return [=](auto... args){
+    using element_type=std::common_type_t<decltype(args.get())...>;
+    using value_type=std::vector<element_type>;
+
+    return detail::callback<value_type>(
+      [v=value_type{}](auto& sig,auto,const auto& x)mutable{
+        v.push_back(x);
+        sig(v);
+      }
+    );
   };
 }
 
