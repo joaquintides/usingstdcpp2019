@@ -861,8 +861,7 @@ auto group_by(F f)
 {
   return [=](auto... args){
     using arg_type=std::common_type_t<decltype(args.get())...>;
-    using key_type=
-      std::common_type_t<std::decay_t<decltype(f(args.get()))>...>;
+    using key_type=std::common_type_t<decltype(f(args.get()))...>;
     using trigger_type=trigger<arg_type>;
     using value_type=decltype(merge(std::declval<trigger_type&>()));
       
