@@ -747,21 +747,19 @@ template<typename Action,typename... Srcs>
 void swap(event<Action,Srcs...>& x,event<Action,Srcs...>& y){x.swap(y);}
 
 template<typename Src>
-class retain:public detail::node<
-  retain<Src>,void(const retain<Src>&),Src
->
+class hold:public detail::node<hold<Src>,void(const hold<Src>&),Src>
 {
-  using super=detail::node<retain,void(const retain&),Src>;
+  using super=detail::node<hold,void(const hold&),Src>;
 
 public:
   using value_type=typename Src::value_type;
 
-  retain(Src&& src,const value_type& v=value_type{}):
+  hold(Src&& src,const value_type& v=value_type{}):
     super{src},v{v},src{std::move(src)}{}
-  retain(const retain& x):retain{Src{x.src},x.v}{}
-  retain(retain&&)=default;
+  hold(const hold& x):hold{Src{x.src},x.v}{}
+  hold(hold&&)=default;
 
-  retain& operator=(const retain& x)
+  hold& operator=(const hold& x)
   {
     if(this!=&x){
       v=x.v;
@@ -771,7 +769,7 @@ public:
     return *this;
   }
 
-  retain& operator=(retain&& x)=default;
+  hold& operator=(hold&& x)=default;
 
   const value_type& get()const noexcept{return v;}
       

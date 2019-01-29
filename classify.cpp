@@ -15,10 +15,10 @@ int main()
   using namespace usingstdcpp2019::urp;
 
   trigger<std::string> s;
-  auto e=retain(
+  auto e=hold(
     s|group_by([](const std::string& str){return str.c_str()[0];})
      |map([](auto e){
-       return retain(std::move(e)|collect());
+       return hold(std::move(e)|collect());
      })
      |collect()
   );
