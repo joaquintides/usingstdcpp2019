@@ -15,7 +15,7 @@ int main()
   using namespace usingstdcpp2019::urp;
 
   trigger<std::string> s;
-  auto e=hold(
+  auto res=hold(
     s|group_by([](const std::string& str){return str.c_str()[0];})
      |map([](auto e){
        return hold(std::move(e)|collect());
@@ -29,8 +29,8 @@ int main()
   };
   for(const auto& str:names)s=str;
 
-  for(const auto& g:e.get()){
-    for(const auto& x:g.get())std::cout<<x<<" ";
+  for(const auto& e:res.get()){
+    for(const auto& str:e.get())std::cout<<str<<" ";
     std::cout<<"\n";
   }
 }
