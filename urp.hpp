@@ -828,6 +828,7 @@ auto combine(Srcs&... srcs)
     srcs...
   };
 }
+
 template<typename Pred>
 auto filter(Pred pred)
 {
