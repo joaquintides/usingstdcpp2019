@@ -614,7 +614,7 @@ public:
       if constexpr(std::is_copy_assignable_v<F>){
         f=x.f;
       }
-      else{
+      else{ /* glorious hack for non-assignable capture lambdas */
         static_assert(std::is_nothrow_move_constructible_v<F>);
         auto f2=x.f;
         f.~F();
