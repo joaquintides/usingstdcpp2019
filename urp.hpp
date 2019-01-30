@@ -640,17 +640,17 @@ struct arg
   const T& get()const;
 };
 
-template<typename... Srcs,typename Action>
-auto callback_for(Action act)
+template<typename... Srcs,typename Reaction>
+auto callback_for(Reaction r)
 {
-  return act(arg<typename Srcs::value_type>{}...);
+  return r(arg<typename Srcs::value_type>{}...);
 }
 
-template<typename Action,typename... Srcs>
-using callback_type=decltype(callback_for<Srcs...>(std::declval<Action>()));
+template<typename Reaction,typename... Srcs>
+using callback_type=decltype(callback_for<Srcs...>(std::declval<Reaction>()));
 
-template<typename Action,typename... Srcs>
-using callback_value_type=typename callback_type<Action,Srcs...>::value_type;
+template<typename Reaction,typename... Srcs>
+using event_value_type=typename callback_type<Reaction,Srcs...>::value_type;
 
 template<typename Callback>
 auto type_passthrough(Callback c)
@@ -660,11 +660,11 @@ auto type_passthrough(Callback c)
   };
 }
 
-template<typename Action,typename Callback>
-auto compose_action(Action act,Callback c)
+template<typename Reaction,typename Callback>
+auto compose_reaction(Reaction r,Callback c)
 {
   return [=](auto...)mutable{
-    auto c2=callback_for<Callback>(act);
+    auto c2=callback_for<Callback>(r);
     return callback<typename decltype(c2)::value_type>(
       [=](auto& sig,auto index,const auto& x)mutable{
         auto sig2=[&](const auto& y){c2(sig,node_index_type<0>{},y);};
@@ -676,33 +676,33 @@ auto compose_action(Action act,Callback c)
 
 } /* namespace detail */
 
-template<typename Action,typename... Srcs>
+template<typename Reaction,typename... Srcs>
 class event:public detail::node<
-  event<Action,Srcs...>,
+  event<Reaction,Srcs...>,
   void(
-    const event<Action,Srcs...>&,
-    const detail::callback_value_type<Action,Srcs...>&
+    const event<Reaction,Srcs...>&,
+    const detail::event_value_type<Reaction,Srcs...>&
   ),
   Srcs...
 >
 {
   using super=detail::node<
     event,
-    void(const event&,const detail::callback_value_type<Action,Srcs...>&),
+    void(const event&,const detail::event_value_type<Reaction,Srcs...>&),
     Srcs...
   >;
 
 public:
-  using value_type=detail::callback_value_type<Action,Srcs...>;
+  using value_type=detail::event_value_type<Reaction,Srcs...>;
     
-  event(Action act,Srcs&... srcs):
-    super{srcs...},c{detail::callback_for<Srcs...>(act)}{}
+  event(Reaction r,Srcs&... srcs):
+    super{srcs...},c{detail::callback_for<Srcs...>(r)}{}
   event(const event& x)=default;
   event(event&& x)=default;
-  template<typename Action1,typename Action2>
-  event(Action1 act1,event<Action2,Srcs...>&& x):
+  template<typename Reaction1,typename Reaction2>
+  event(Reaction1 r1,event<Reaction2,Srcs...>&& x):
     super{std::move(x)},
-    c{detail::callback_for<Srcs...>(detail::compose_action(act1,x.c))}{}
+    c{detail::callback_for<Srcs...>(detail::compose_reaction(r1,x.c))}{}
 
   event& operator=(const event&)=default;
   event& operator=(event&&)=default;
@@ -714,11 +714,11 @@ public:
     swap(c,x.c);
   }
 
-  template<typename Action2>
-  auto operator|(Action2 act2)& {return urp::event{act2,*this};}
-  template<typename Action2>
-  auto operator|(Action2 act2)&&{return urp::event{act2,std::move(*this)};}
-    
+  template<typename Reaction2>
+  auto operator|(Reaction2 r2)& {return urp::event{r2,*this};}
+  template<typename Reaction2>
+  auto operator|(Reaction2 r2)&&{return urp::event{r2,std::move(*this)};}
+
 private:
   friend super;
   template<typename,typename...> friend class event;
@@ -732,19 +732,19 @@ private:
     c(sig,index,x);
   }
 
-  detail::callback_type<Action,Srcs...> c;
+  detail::callback_type<Reaction,Srcs...> c;
 };
 
-template<typename Action1,typename Action2,typename... Srcs>
-event(Action1,event<Action2,Srcs...>&& x)->event<
-  decltype(detail::compose_action(
-    std::declval<Action1>(),
-    std::declval<detail::callback_type<Action2,Srcs...>>())),
+template<typename Reaction1,typename Reaction2,typename... Srcs>
+event(Reaction1,event<Reaction2,Srcs...>&& x)->event<
+  decltype(detail::compose_reaction(
+    std::declval<Reaction1>(),
+    std::declval<detail::callback_type<Reaction2,Srcs...>>())),
   Srcs...
 >;
 
-template<typename Action,typename... Srcs>
-void swap(event<Action,Srcs...>& x,event<Action,Srcs...>& y){x.swap(y);}
+template<typename Reaction,typename... Srcs>
+void swap(event<Reaction,Srcs...>& x,event<Reaction,Srcs...>& y){x.swap(y);}
 
 template<typename Src>
 class hold:public detail::node<hold<Src>,void(const hold<Src>&),Src>
