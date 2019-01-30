@@ -473,7 +473,7 @@ function(F1,function<F2,Args2...>&&,Arg3&)->function<
 >;
 
 template<typename F1,typename Arg2,typename F3,typename... Args3>
-function(F1 f1,Arg2& x,function<F3,Args3...>&& y)->function<
+function(F1,Arg2&,function<F3,Args3...>&&)->function<
   decltype(
     detail::compose_function<1,sizeof...(Args3)>(
       std::declval<F1>(),detail::identity_f{},std::declval<F3>())),
@@ -736,7 +736,7 @@ private:
 };
 
 template<typename Reaction1,typename Reaction2,typename... Srcs>
-event(Reaction1,event<Reaction2,Srcs...>&& x)->event<
+event(Reaction1,event<Reaction2,Srcs...>&&)->event<
   decltype(detail::compose_reaction(
     std::declval<Reaction1>(),
     std::declval<detail::callback_type<Reaction2,Srcs...>>())),
