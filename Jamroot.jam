@@ -22,4 +22,3 @@ run function_decomposed.cpp ;
 run function_pipe.cpp ;
 run matrix.cpp ;
 run newton_raphson.cpp ;
-run sample.cpp ;
