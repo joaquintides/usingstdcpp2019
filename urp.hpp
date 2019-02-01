@@ -566,7 +566,7 @@ USINGSTDCPP2019_URP_DEFINE_BINARY_OP(/)
 #undef USINGSTDCPP2019_URP_DEFINE_BINARY_OP
 #undef USINGSTDCPP2019_URP_DEFINE_UNARY_OP
 
-template<typename F,typename... Srcs> class event;
+template<typename Reaction,typename... Srcs> class event;
 
 template<typename T>
 class trigger:public detail::node<trigger<T>,void(const trigger<T>&,const T&)>
